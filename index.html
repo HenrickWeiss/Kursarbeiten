@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -28,18 +28,19 @@ circle{fill:none;stroke-width:32;transition:stroke-dasharray .9s cubic-bezier(.3
 .row{display:flex;align-items:center;gap:8px;font-size:14px;margin-top:6px}
 .dot{width:10px;height:10px;border-radius:50%}
 form{display:flex;gap:8px;flex-wrap:wrap}
-input[type=text],input[type=date]{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 13px;outline:none;transition:border-color .2s,box-shadow .2s}
-input:focus{border-color:var(--todo);box-shadow:0 0 0 3px color-mix(in srgb,var(--todo) 22%,transparent)}
+input[type=text],input[type=date],textarea{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 13px;outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus,textarea:focus{border-color:var(--todo);box-shadow:0 0 0 3px color-mix(in srgb,var(--todo) 22%,transparent)}
 input[type=text]{flex:1 1 180px;min-width:0}
 input[type=date]{flex:1 1 130px}
+textarea{flex:1 1 100%;resize:vertical;min-height:64px}
 button.add{font:inherit;font-weight:600;border:0;border-radius:12px;padding:11px 18px;background:var(--todo);color:#fff;cursor:pointer;transition:transform .15s,filter .2s}
 button.add:hover{filter:brightness(1.08)}button.add:active{transform:scale(.95)}
 ul{list-style:none;margin:0;padding:0}
-li{display:flex;align-items:center;gap:13px;padding:13px 4px;border-bottom:1px solid var(--line);animation:in .45s cubic-bezier(.2,.8,.2,1) both;transition:opacity .3s,transform .3s}
+li{display:flex;align-items:flex-start;gap:13px;padding:13px 4px;border-bottom:1px solid var(--line);animation:in .45s cubic-bezier(.2,.8,.2,1) both;transition:opacity .3s,transform .3s}
 li:last-child{border-bottom:0}
 li.out{opacity:0;transform:translateX(30px)}
 @keyframes in{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
-.chk{appearance:none;-webkit-appearance:none;width:24px;height:24px;border-radius:8px;border:2px solid var(--line);flex:none;cursor:pointer;display:grid;place-items:center;transition:background .25s,border-color .25s}
+.chk{margin-top:1px;appearance:none;-webkit-appearance:none;width:24px;height:24px;border-radius:8px;border:2px solid var(--line);flex:none;cursor:pointer;display:grid;place-items:center;transition:background .25s,border-color .25s}
 .chk::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) scale(0);margin-top:-2px;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
 .chk:checked{background:var(--done);border-color:var(--done);animation:pop .35s}
 .chk:checked::after{transform:rotate(45deg) scale(1)}
@@ -49,8 +50,18 @@ li.out{opacity:0;transform:translateX(30px)}
 .name::after{content:"";position:absolute;left:0;top:55%;height:2px;width:100%;background:var(--muted);transform:scaleX(0);transform-origin:left;transition:transform .35s}
 li.done .name{color:var(--muted)}li.done .name::after{transform:scaleX(1)}
 .date{font-size:12px;color:var(--muted);margin-top:2px}
-.del{background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:color .2s,background .2s}
+.del{margin-top:-3px;background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:color .2s,background .2s}
 .del:hover{color:#ef4444;background:var(--bg)}
+.head{display:flex;align-items:center;gap:6px;outline:none}
+.head.has{cursor:pointer}
+.head.has:focus-visible .name{text-decoration:underline}
+.chev{width:7px;height:7px;border:solid var(--muted);border-width:0 2px 2px 0;transform:rotate(45deg);margin:-3px 0 0 4px;transition:transform .3s,margin .3s}
+.head[aria-expanded=true] .chev{transform:rotate(-135deg);margin-top:3px}
+.acc{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .4s cubic-bezier(.3,.8,.2,1),opacity .3s}
+.acc.open{grid-template-rows:1fr;opacity:1}
+.acc>div{overflow:hidden;min-height:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:10px}
+.chip{font-size:12.5px;padding:5px 11px;border-radius:999px;background:var(--bg);border:1px solid var(--line)}
 .empty{text-align:center;color:var(--muted);padding:22px 0 8px;font-size:14px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -78,6 +89,7 @@ li.done .name{color:var(--muted)}li.done .name::after{transform:scaleX(1)}
     <form id="f">
       <input type="text" id="n" placeholder="Fach, z. B. Mathe" maxlength="60" required autocomplete="off">
       <input type="date" id="d" aria-label="Datum">
+      <textarea id="fo" placeholder="Schwerpunkte (optional, mit Komma oder Zeilenumbruch trennen)" maxlength="600"></textarea>
       <button class="add" type="submit">Hinzufügen</button>
     </form>
   </section>
@@ -114,7 +126,8 @@ function chart(){
 function sorted(){
   return [...items].sort((a,b)=>a.done-b.done||(a.date||"9").localeCompare(b.date||"9")||a.id-b.id);
 }
-const known=new Set();
+const known=new Set(),open=new Set();
+const parseFocus=s=>s.split(/[,;\n]/).map(x=>x.trim()).filter(Boolean).slice(0,30);
 function render(){
   const ul=$("list");ul.innerHTML="";
   sorted().forEach(it=>{
@@ -126,9 +139,22 @@ function render(){
     c.setAttribute("aria-label",it.name+" geschrieben");
     c.onchange=()=>{it.done=c.checked;li.classList.toggle("done",it.done);save();chart();setTimeout(render,450)};
     const t=document.createElement("div");t.className="t";
+    const head=document.createElement("div");head.className="head";
     const nm=document.createElement("span");nm.className="name";nm.textContent=it.name;
-    t.appendChild(nm);
+    head.appendChild(nm);t.appendChild(head);
     if(it.date){const dd=document.createElement("div");dd.className="date";dd.textContent=fmt(it.date);t.appendChild(dd)}
+    const fo=it.focus||[];
+    if(fo.length){
+      const isOpen=open.has(it.id);
+      head.classList.add("has");head.tabIndex=0;head.setAttribute("role","button");head.setAttribute("aria-expanded",isOpen);
+      const ch=document.createElement("span");ch.className="chev";head.appendChild(ch);
+      const acc=document.createElement("div");acc.className="acc"+(isOpen?" open":"");
+      const inn=document.createElement("div");const chips=document.createElement("div");chips.className="chips";
+      fo.forEach(s=>{const chip=document.createElement("span");chip.className="chip";chip.textContent=s;chips.appendChild(chip)});
+      inn.appendChild(chips);acc.appendChild(inn);t.appendChild(acc);
+      const tog=()=>{const o=!acc.classList.contains("open");acc.classList.toggle("open",o);head.setAttribute("aria-expanded",o);o?open.add(it.id):open.delete(it.id)};
+      head.onclick=tog;head.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();tog()}};
+    }
     const x=document.createElement("button");x.className="del";x.innerHTML="&times;";x.setAttribute("aria-label","Löschen");
     x.onclick=()=>{li.classList.add("out");setTimeout(()=>{items=items.filter(i=>i.id!==it.id);save();render();chart()},300)};
     li.append(c,t,x);ul.appendChild(li);
@@ -138,8 +164,8 @@ function render(){
 $("f").onsubmit=e=>{
   e.preventDefault();
   const name=$("n").value.trim();if(!name)return;
-  items.push({id:Date.now(),name,date:$("d").value,done:false});
-  $("n").value="";$("d").value="";save();render();chart();$("n").focus();
+  items.push({id:Date.now(),name,date:$("d").value,focus:parseFocus($("fo").value),done:false});
+  $("n").value="";$("d").value="";$("fo").value="";save();render();chart();$("n").focus();
 };
 render();
 setTimeout(chart,250);
